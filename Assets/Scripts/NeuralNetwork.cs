@@ -22,8 +22,13 @@ public class NeuralNetwork : MonoBehaviour {
         Layers = new List<NeuralLayer>();
         WeightLayers = new List<NeuralLayer>();
 
-        //initialize the layers
+        //Initialize layers  Only works for 1 hidden layer
+        Layers.Add(new NeuralLayer(InputCount, 1));
+        Layers.Add(new NeuralLayer(InputCount + OutputCount, 1));
+        Layers.Add(new NeuralLayer(OutputCount, 1));
 
+        WeightLayers.Add(new NeuralLayer(InputCount + OutputCount, InputCount));
+        WeightLayers.Add(new NeuralLayer(OutputCount, InputCount + OutputCount));
     }
 
     public void SetInputs(List<float> inputs)
@@ -34,9 +39,9 @@ public class NeuralNetwork : MonoBehaviour {
         }
     }
 
-    public void AddWeightLayer(NeuralLayer weightLayer)
+    public void AddWeightLayer(NeuralLayer weightLayer, int index)
     {
-        WeightLayers.Add(weightLayer);
+        WeightLayers[index] = weightLayer;
     }
 
     public NeuralLayer CreateRandomWeightLayer(int incommingCount, int outgoingCount) // Set random weights the weight layers ( only used once at the start of the AI ) 
@@ -76,6 +81,39 @@ public class NeuralNetwork : MonoBehaviour {
     public NeuralLayer CreateLayer(int count)
     {
         return new NeuralLayer(count, 1); //All layers are 1 column Matrixes for now.
+    }
+
+    public Genome ToGenome()
+    {
+        Genome resultGenome = new Genome();
+        List<float> weights = new List<float>();
+        for (int i = 0; i < WeightLayers.Count; i++)
+        {
+            for (int k = 0; k < WeightLayers[i]._rows; k++)
+            {
+                for (int l = 0; l < WeightLayers[i]._columns; l++)
+                {
+                    weights.Add(WeightLayers[i].GetCell(k, l));
+                }
+            }
+        }
+        resultGenome.weights = weights;
+        return resultGenome;
+    }
+
+    public void fromGenome(Genome Genome) //does not work if more then one hidden layer!!!
+    {
+        int index = 0;
+        for (int i = 0; i < WeightLayers.Count; i++)
+        {
+            for (int r = 0; r < WeightLayers[i]._rows; r++)
+            {
+                for (int c = 0; c < WeightLayers[i]._columns; c++)
+                {
+                    WeightLayers[i].SetCell(r, c, Genome.weights[index++]);
+                }
+            }
+        }
     }
 
 }
