@@ -1,2 +1,5 @@
 Library/*
 ProjectSettings/*
+*.meta
+Temp/*
+.vs/*
