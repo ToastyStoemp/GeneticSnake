@@ -8,22 +8,15 @@ public enum NeuronType
     Hidden
 }
 
+[System.Serializable]
 public class Neuron {
 
     public int _in,
                _out,
                _inovationNum;
 
-    public bool _enabled
-    {
-        get { return _enabled; }
-        set { _enabled = value; }
-    }
-    public float _weight
-    {
-        get { return _weight; }
-        set { _weight = value; }
-    }
+    public bool _enabled;
+    public float _weight;
 
 
     public Neuron(int In, int Out, float weight, int Inovation)
@@ -36,23 +29,17 @@ public class Neuron {
     }
 }
 
+[System.Serializable]
 public class Node
 {
     public int _nodeIndex;
-    public float _value
-    {
-        get { return _value; }
-        set { _value = value; }
-    }
-    public NeuronType _type
-    {
-        get { return _type; }
-        set { _type = value; }
-    }
+	public float _value;
+	public NeuronType _type;
 
     public Node(int nodeIndex, NeuronType Type = NeuronType.Hidden)
     {
         _nodeIndex = nodeIndex;
+		_type = Type;
     }
 }
-}
+

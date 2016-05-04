@@ -2,16 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 
-//first iteration -> test fitness
-//Check fitness ranking
-//Check diversity ranking
-//combine ranks
-//Decide probablity
-//Crossover
-//Mutation
-//Copy to new generation
-
-public class Generation : MonoBehaviour {
+[System.Serializable]
+public class Generation {
 
 
     float DeltaDisjoint = 2.0f;
@@ -20,9 +12,9 @@ public class Generation : MonoBehaviour {
 
     int generationIndex;
 
-    List<Genome> pool = new List<Genome>();
+    public List<Genome> pool = new List<Genome>();
 
-    public void Instantiate(int index, int poolSize, int inputCount, int outputCount)
+    public Generation Instantiate(int index, int poolSize, int inputCount, int outputCount)
     {
         generationIndex = index;
 
@@ -32,6 +24,12 @@ public class Generation : MonoBehaviour {
         {
             pool.Add(new Genome(i * generationIndex, inputCount, outputCount));
         }
+        return this;
+    }
+
+    public void Rank()
+    {
+        pool.Sort((x, y) => x._fitness.CompareTo(y._fitness));
     }
 
     /// <summary>

@@ -3,7 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-public class Genome : MonoBehaviour {
+[System.Serializable]
+public class Genome {
 
     //GLOBAL VARIABLES TEMP
     int globalGenomeCounter = 0;
@@ -21,7 +22,7 @@ public class Genome : MonoBehaviour {
 
     List<Neuron> NeuralNetwork;
     List<Node> NodeCollection;
-    float _fitness;
+	public float _fitness;
     int _genomeIndex;
 
     int _inputCount;
@@ -29,6 +30,9 @@ public class Genome : MonoBehaviour {
 
     public Genome(int index, int inputCount, int outputCount)
     {
+        NeuralNetwork = new List<Neuron>();
+        NodeCollection = new List<Node>();
+
         _genomeIndex = index;
         _inputCount = inputCount;
         _outputCount = outputCount;
@@ -74,7 +78,7 @@ public class Genome : MonoBehaviour {
     /// <summary>
     /// After running the calculations throughout all the nodes we can obtain the outputs.
     /// </summary>
-    public List<float> GetInputs()
+    public List<float> GetOutputs()
     {
         List<float> results = new List<float>();
 
@@ -100,6 +104,20 @@ public class Genome : MonoBehaviour {
                 targetNode._value += inputNode._value * connection._weight;
             }
         }
+    }
+    /// <summary>
+    /// Calc the fitness
+    /// </summary>
+    public void FitnessCalc(List<float> desiredOutcome)
+    {
+        float sum = 0.0f;
+        //Since we added the outputs after the inputs the indexes are easily found
+        for (int i = 0; i < _outputCount; i++)
+        {
+            sum += desiredOutcome[i] - NodeCollection[i + _inputCount]._value;
+        }
+
+        _fitness += sum / (float)_outputCount;
     }
     /// <summary>
     /// Reseting all the values ( in case of copy ), safety measure
