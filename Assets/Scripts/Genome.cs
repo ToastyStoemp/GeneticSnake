@@ -243,9 +243,79 @@ public class Genome : MonoBehaviour {
         }
 
         //Some information output //DEBUG
-        Debug.Log("This mutation, genome#" + genomeIndex + "\nWeights changed: " + weightsChanged + "\nWeights pertured: " + weightsPertured + "\nWeights randomized: " + weightsRandomized + "\nEnabled connections: " + connectionsEnabled + "\nNew Connections: " + newConnectionCounter + "\nNew Nodes: " + newNodeCounter);
+        Debug.Log("This mutation, genome#" + _genomeIndex + "\nWeights changed: " + weightsChanged + "\nWeights pertured: " + weightsPertured + "\nWeights randomized: " + weightsRandomized + "\nEnabled connections: " + connectionsEnabled + "\nNew Connections: " + newConnectionCounter + "\nNew Nodes: " + newNodeCounter);
     }
 
+    /// <summary>
+    /// get the weight
+    /// </summary>
+    public float WeightsDifference(Genome target)
+    {
+
+        float sum = 0;
+        int totalCount = 0;
+
+        List<int> InovationNumbersList = GetInovationList().Union(target.GetInovationList()).ToList();
+        foreach (int inovation in InovationNumbersList)
+        {
+            Neuron myNeuron = GetNeuron(inovation);
+            Neuron targetNeuron = target.GetNeuron(inovation);
+
+            if (myNeuron != null && targetNeuron != null)
+            {
+                sum += Mathf.Abs(myNeuron._weight - targetNeuron._weight);
+                totalCount++;
+            }
+        }
+
+        return sum / (float)totalCount;
+    }
+    /// <summary>
+    /// returns the amount of disjoints between 2 Genomes
+    /// </summary>
+    public int DisJoint(Genome target)
+    {
+        List<int> myInovationList = GetInovationList();
+        List<int> targetInovationList = target.GetInovationList();
+
+        int myHighest = GetHighestFromList(myInovationList);
+        int targetHighest = GetHighestFromList(targetInovationList);
+
+        int highest = myHighest;
+        if (targetHighest > myHighest)
+            highest = targetHighest;
+        else if (myHighest == targetHighest)
+            highest++;
+
+        myInovationList.Concat(targetInovationList).ToList();
+        myInovationList.Distinct().ToList();
+        myInovationList = GetElementsBelow(myInovationList, highest);
+
+        return myInovationList.Count; //Might need to be devided by the total count or so
+    }
+    /// <summary>
+    /// returns the amount of disjoints between 2 Genomes
+    /// </summary>
+    public int GetHighestFromList(List<int> list)
+    {
+        int highest = 0;
+        for (int i = 0; i < list.Count; i++)
+            if (highest < list[i])
+                highest = list[i];
+
+        return highest;
+    }
+    /// <summary>
+    /// deletes all elements higher then X
+    /// </summary>
+    public List<int> GetElementsBelow(List<int> list, int value = 0)
+    {
+        List<int> leftOver = new List<int>();
+        for (int i = 0; i < list.Count; i++)
+            if (list[i] < value)
+                leftOver.Add(list[i]);
+        return leftOver;
+    }
     /// <summary>
     /// Adds a Neuron to the Neural Network 
     /// </summary>
