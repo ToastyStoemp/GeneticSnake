@@ -21,9 +21,100 @@ public class Genome : MonoBehaviour {
 
     List<Neuron> NeuralNetwork;
     List<Node> NodeCollection;
-    float fitness;
-    int genomeIndex;
+    float _fitness;
+    int _genomeIndex;
 
+    int _inputCount;
+    int _outputCount;
+
+    public Genome(int index, int inputCount, int outputCount)
+    {
+        _genomeIndex = index;
+        _inputCount = inputCount;
+        _outputCount = outputCount;
+
+        //Make the start input and output nodes
+        List<Node> inputNodes = new List<Node>();
+        for (int i = 0; i < inputCount; i++)
+        {
+            inputNodes.Add(new Node(i, NeuronType.Input));
+        }
+        List<Node> outputNodes = new List<Node>();
+        for (int i = 0; i < outputCount; i++)
+        {
+            outputNodes.Add(new Node(inputCount + i, NeuronType.OutPut));
+        }
+
+        //Generate a random connection to a random OutPut node
+        globalInovationCounter++;
+        Node from = inputNodes[(int)Random.Range(0, inputNodes.Count)];
+        Node to = outputNodes[(int)Random.Range(0, outputNodes.Count)];
+        NeuralNetwork.Add(new Neuron(from._nodeIndex, to._nodeIndex, Random.Range(-1, 1), globalInovationCounter));
+
+        //Merge the nodes into one list 
+        NodeCollection = inputNodes.Union(outputNodes).ToList();
+    }
+    /// <summary>
+    /// Set the input data for the AI
+    /// </summary>
+    public void SetInputs(List<float> inputList)
+    {
+        if (inputList.Count != _inputCount)
+        {
+            Debug.Log("Not enough inputs given!");
+            return; 
+        }
+
+        //Since we added the Inputs first, we can just access them through the index no need for a seperate list ( technically the nodeType is also not necesary )
+        for (int i = 0; i < _inputCount; i++)
+        {
+            NodeCollection[i]._value = inputList[i];
+        }
+    }
+    /// <summary>
+    /// After running the calculations throughout all the nodes we can obtain the outputs.
+    /// </summary>
+    public List<float> GetInputs()
+    {
+        List<float> results = new List<float>();
+
+        //Since we added the outputs after the inputs the indexes are easily found
+        for (int i = 0; i < _outputCount; i++)
+        {
+            results.Add(NodeCollection[i + _inputCount]._value);
+        }
+        return results;
+    }
+    /// <summary>
+    /// Calculates the end values for every node
+    /// </summary>
+    public void Calculate()
+    {
+        foreach (Neuron connection in NeuralNetwork)
+        {
+            if (connection._enabled) //Make sure to process only the enabled networks
+            {
+                Node inputNode = NodeCollection[connection._in];
+                Node targetNode = NodeCollection[connection._out];
+
+                targetNode._value += inputNode._value * connection._weight;
+            }
+        }
+    }
+    /// <summary>
+    /// Reseting all the values ( in case of copy ), safety measure
+    /// </summary>
+    public void Reset()
+    {
+        //Reseting all the values ( in case of copy ), safety measure
+        foreach(Node node in NodeCollection)
+        {
+            node._value = 0.0f;
+        }
+    }
+    /// <summary>
+    /// Mates/combines 2 genomes into 2 different OffSpring
+    /// </summary>
     public void Mate(ref Genome Partner, ref Genome OffSpring1, ref Genome OffSpring2)
     {
         List<int> InovationNumbersList = GetInovationList().Union(Partner.GetInovationList()).ToList();
@@ -60,6 +151,9 @@ public class Genome : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Alters the current Genome with the different mutation steps
+    /// </summary>
     public void Mutate()
     {
         //Some parameters for debugging and informatics
