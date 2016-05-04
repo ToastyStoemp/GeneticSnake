@@ -8,7 +8,7 @@ public enum NeuronType
     Hidden
 }
 
-public class Neuron : MonoBehaviour {
+public class Neuron {
 
     public int _in,
                _out,
@@ -25,13 +25,8 @@ public class Neuron : MonoBehaviour {
         set { _weight = value; }
     }
 
-    public NeuronType _type
-    {
-        get { return _type; }
-        set { _type = value; }
-    }
 
-    public Neuron (int In, int Out, float weight, int Inovation, NeuronType Type = NeuronType.Hidden)
+    public Neuron(int In, int Out, float weight, int Inovation)
     {
         _in = In;
         _out = Out;
@@ -39,4 +34,25 @@ public class Neuron : MonoBehaviour {
         _weight = weight;
         _inovationNum = Inovation;
     }
+}
+
+public class Node
+{
+    public int _nodeIndex;
+    public float _value
+    {
+        get { return _value; }
+        set { _value = value; }
+    }
+    public NeuronType _type
+    {
+        get { return _type; }
+        set { _type = value; }
+    }
+
+    public Node(int nodeIndex, NeuronType Type = NeuronType.Hidden)
+    {
+        _nodeIndex = nodeIndex;
+    }
+}
 }
