@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
+[System.Serializable]
 public class ColorAI : MonoBehaviour {
 
     private Material _mat;
@@ -14,6 +15,11 @@ public class ColorAI : MonoBehaviour {
     List<float> desired;
 
     List<float> input;
+
+	public GameObject DebugLocation;
+
+    float timer = 0.0f;
+    float nextUpdateTime = 2.0f;
 
     
 
@@ -38,10 +44,31 @@ public class ColorAI : MonoBehaviour {
         List<float> temp = AI.Tick();
         Color newColor = new Color(temp[0], temp[1], temp[2]);
         _mat.color = newColor;
+
+
     }
 	
 	// Update is called once per frame
 	void Update () {
-	
+        timer += Time.deltaTime;
+        if (timer > nextUpdateTime)
+        {
+		NextTick ();
+            timer = 0.0f;
+        }
 	}
+
+	public void NextTick()
+	{
+		AI.Mutate ();
+		List<float> temp = AI.Tick();
+		Color newColor = new Color(temp[0], temp[1], temp[2]);
+		_mat.color = newColor;
+	}
+
+	void OnDrawGizmos()
+	{
+		AI.Print (0, 0, DebugLocation.transform.position);
+	}
+
 }
