@@ -23,6 +23,7 @@ public class Genome {
     List<Neuron> NeuralNetwork;
     List<Node> NodeCollection;
 	public float _fitness;
+	public float _probability;
     int _genomeIndex;
 
     int _inputCount;
@@ -53,7 +54,7 @@ public class Genome {
         globalInovationCounter++;
         Node from = inputNodes[(int)Random.Range(0, inputNodes.Count)];
         Node to = outputNodes[(int)Random.Range(0, outputNodes.Count)];
-        NeuralNetwork.Add(new Neuron(from._nodeIndex, to._nodeIndex, Random.Range(-1, 1), globalInovationCounter));
+        NeuralNetwork.Add(new Neuron(from._nodeIndex, to._nodeIndex, Random.value*2-1.0f, globalInovationCounter));
 
         //Merge the nodes into one list 
         NodeCollection = inputNodes.Union(outputNodes).ToList();
@@ -194,7 +195,7 @@ public class Genome {
                 Node endNode = GetRandomNode(startNode._nodeIndex);
 
                 globalInovationCounter++;
-                Neuron newConnection = new Neuron(startNode._nodeIndex, endNode._nodeIndex, Random.Range(-1, 1), globalInovationCounter); //Set the weight to be random
+				Neuron newConnection = new Neuron(startNode._nodeIndex, endNode._nodeIndex, Random.value*2-1.0f , globalInovationCounter); //Set the weight to be random
                 ToAddNeurons.Add(newConnection);
             }
         }
@@ -217,12 +218,12 @@ public class Genome {
                 Perturbed With the highest chance of occuring ( Default value is 90% ) */
                 if (Random.value < perturbedChance)
                 {
-                    neuron._weight *= perturbMaxChangeAmount * Random.Range(-1, 1);
+					neuron._weight *= perturbMaxChangeAmount * Random.value*2-1.0f;
                     weightsPertured++; //DEBUG
                 }
                 else //Randomized, the weight is set to a random value ( Default value is 10% )
                 {
-                    neuron._weight = Random.Range(-1, 1);
+					neuron._weight = Random.value*2-1.0f;
                     weightsRandomized++; //DEBUG
                 }
             }
@@ -234,7 +235,7 @@ public class Genome {
                 to give it some breathing room, we set the weight of the new neuron to the weight of the previous connection
                The previous connection is dissabled, and a new connection from the origin to this node is set with a weight of 1. 
                This will result in fitness close to fitness achieved in the previous generation */
-                Node mutationNode = new Node(NodeCollection.Count + 1);
+                Node mutationNode = new Node(NodeCollection.Count);
                 newNodeCounter++; //DEBUG
                 //Make apropriate connections
                 int input = neuron._in; //this will be the input for the new node
@@ -244,6 +245,9 @@ public class Genome {
                 globalInovationCounter++;
                 Neuron outputConnection = new Neuron(mutationNode._nodeIndex, output, neuron._weight, globalInovationCounter); //Set the weight to the original weight to maintain fitness
                 neuron._enabled = false; //Disable the original connection
+				//Don't forget to add the actual node to the nodeCollection ( took me about an hour to figure this out -_- )
+				NodeCollection.Add(mutationNode);
+
 
                 //Add the newly created neurons to the 'to add list'
                 ToAddNeurons.Add(inputConnection);
@@ -261,7 +265,13 @@ public class Genome {
         }
 
         //Some information output //DEBUG
-        Debug.Log("This mutation, genome#" + _genomeIndex + "\nWeights changed: " + weightsChanged + "\nWeights pertured: " + weightsPertured + "\nWeights randomized: " + weightsRandomized + "\nEnabled connections: " + connectionsEnabled + "\nNew Connections: " + newConnectionCounter + "\nNew Nodes: " + newNodeCounter);
+		//Debug.Log("This mutation, genome#" + _genomeIndex + "\nWeights changed: " + weightsChanged);
+		//Debug.Log("Weights pertured: " + weightsPertured + "\nWeights randomized: " + weightsRandomized);
+		//Debug.Log("Enabled connections: " + connectionsEnabled + "\nNew Connections: " + newConnectionCounter);
+		if (newNodeCounter != 0) {
+			Debug.Log("New Nodes: " + newNodeCounter);
+
+		}
     }
 
     /// <summary>
@@ -415,4 +425,49 @@ public class Genome {
     float Sigmoid(float x) {
         return 2 / (1 + Mathf.Exp(-4.9f * x)) - 1; //See https://www.jair.org/media/1338/live-1338-2278-jair.pdf page 95
     }
+	/// <summary>>
+	/// Graphically represents the Neural network
+	/// </summary>
+	public void Print(Vector3 pos)
+	{
+		List<Vector3> Positions = new List<Vector3> ();
+
+		float nodeDistance = 2.0f;
+		float radius = 0.2f;
+		Gizmos.color = new Color (0.2f, 0.2f, 0.2f);
+		//Draw inputs
+		for (int i = 0; i < _inputCount; i++) {
+			Vector3 myPos = new Vector3 (pos.x, pos.y - nodeDistance * i, pos.z);
+			Positions.Add (myPos);
+			Gizmos.DrawSphere (myPos, radius);
+			TextGizmo.Draw( myPos,  NodeCollection[i]._value.ToString());
+		}
+		//Draw Hidden Nodes
+		for (int i = 0; i < NodeCollection.Count - _inputCount - _outputCount; i++) {
+			Vector3 myPos = new Vector3 (pos.x + nodeDistance * (i + 1), pos.y - nodeDistance * (i / (NodeCollection.Count - _inputCount - _outputCount)), pos.z);
+			Positions.Add (myPos);
+			Gizmos.DrawSphere ( myPos, radius);
+			TextGizmo.Draw(myPos, NodeCollection[i + _inputCount]._value.ToString());
+		}
+		//Draw OutPuts
+		for (int i = 0; i < _outputCount; i++) {
+			Vector3 myPos = new Vector3 (pos.x + nodeDistance * (NodeCollection.Count - _inputCount - _outputCount + 1), pos.y - nodeDistance * i, pos.z);
+			Positions.Add (myPos);
+			Gizmos.DrawSphere (myPos, radius);
+			TextGizmo.Draw(myPos, NodeCollection[NodeCollection.Count - _inputCount + i]._value.ToString());
+		}
+
+
+		for (int i = 0; i < NeuralNetwork.Count; i++) {
+			if (NeuralNetwork[i]._weight > 0 ) {
+				Gizmos.color = new Color (0, 1.0f, 0);
+			} else if (NeuralNetwork[i]._weight < 0 )
+			{
+				Gizmos.color = new Color (1.0f, 0, 0);
+			} else {
+				Gizmos.color = new Color (0, 0, 0);
+			}
+			Gizmos.DrawLine(Positions[NeuralNetwork[i]._in], Positions[NeuralNetwork[i]._out]);
+		}
+	}
 }
