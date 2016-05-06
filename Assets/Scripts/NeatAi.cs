@@ -36,9 +36,21 @@ public class NeatAi {
     {
         memory[generationCount].pool[genomeCount].SetInputs(input);
         memory[generationCount].pool[genomeCount].Calculate();
-        memory[generationCount].pool[genomeCount].FitnessCalc(desired);
         return memory[generationCount].pool[genomeCount].GetOutputs();
     }
+
+	public void Mutate()
+	{
+		memory [generationCount].pool [genomeCount].Mutate ();
+	}
+
+	public void Print(int generationNum, int genomeNum, Vector3 pos)
+	{
+		if (Application.isPlaying) {
+			memory [generationNum].pool [genomeNum].Print (pos);
+			
+		}
+	}
 }
 
 //first iteration -> test fitness
