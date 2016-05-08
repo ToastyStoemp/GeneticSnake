@@ -98,10 +98,10 @@ public class Genome {
         List<float> results = new List<float>();
 
         //Since we added the outputs after the inputs the indexes are easily found
-        for (int i = 0; i < _outputCount; i++)
+        for (int i = _inputCount; i - _inputCount < _outputCount; i++)
         {
             //results.Add(((NodeCollection[i + NodeCollection.Count - _outputCount]._value) + 1.0f) / 2.0f); // Normalize the outputs
-            results.Add(Mathf.Clamp((NodeCollection[i + NodeCollection.Count - _outputCount]._value), 0, 1)); // Clamp the outputs
+            results.Add(Mathf.Clamp((NodeCollection[i]._value), 0, 1)); // Clamp the outputs
         }
         return results;
     }
@@ -128,14 +128,12 @@ public class Genome {
     /// </summary>
     public void FitnessCalc(List<float> desiredOutcome)
     {
-        float sum = 0.0f;
-        //Since we added the outputs after the inputs the indexes are easily found
-        for (int i = 0; i < _outputCount; i++)
-        {
-			sum += Mathf.Abs(desiredOutcome[i] - NodeCollection[i + NodeCollection.Count - _outputCount]._value);
-        }
+        float sum = 1.0f;
+        ////Since we added the outputs after the inputs the indexes are easily found
+        List<float> outputs = GetOutputs();
 
-        _fitness += sum / (float)_outputCount;
+        float diff = Mathf.Sqrt(Mathf.Pow(Mathf.Pow(outputs[0] - desiredOutcome[0], 2) + Mathf.Pow(outputs[1] - desiredOutcome[1], 2) + Mathf.Pow(outputs[2] - desiredOutcome[2], 2), 2));
+        _fitness = sum - diff;
     }
     /// <summary>
     /// Reseting all the values ( in case of copy ), safety measure
@@ -523,14 +521,23 @@ public class Genome {
         List<Vector3> Positions = new List<Vector3> ();
 
 		float nodeDistance = 1.0f;
-		float radius = 0.2f;
+        float radius = 0.2f;
+        float boxsize = 0.6f;
         float xOffset = sizeOffset * nodeDistance;
         float yOffset = _inputCount * nodeDistance * 2 * _index;
 
 
-        Gizmos.color = new Color(1.0f, 0.2f, 0.2f);
-        Vector3 myPos1 = new Vector3(pos.x - nodeDistance + xOffset, pos.y - yOffset, pos.z);
+        Vector3 myPos1 = new Vector3(pos.x - nodeDistance + xOffset, pos.y - yOffset + nodeDistance, pos.z);
         TextGizmo.Draw(myPos1, _index.ToString());
+
+        myPos1 = new Vector3(pos.x - nodeDistance + xOffset, pos.y - yOffset + nodeDistance / 2, pos.z);
+        TextGizmo.Draw(myPos1, _fitness.ToString());
+
+        myPos1 = new Vector3(pos.x - nodeDistance + xOffset + (NodeCollection.Count - _inputCount - _outputCount + 2) * nodeDistance, pos.y - yOffset + nodeDistance / 2, pos.z);
+        List<float> results = GetOutputs();
+        Gizmos.color = new Color(results[0], results[1], results[2]);
+        Gizmos.DrawCube(myPos1, new Vector3(boxsize, boxsize, boxsize));
+        
 
         Gizmos.color = new Color (0.2f, 0.2f, 0.2f);
 		//Draw inputs
@@ -538,14 +545,14 @@ public class Genome {
 			Vector3 myPos = new Vector3 (pos.x + xOffset, pos.y - nodeDistance * i - yOffset, pos.z);
 			Positions.Add (myPos);
 			Gizmos.DrawSphere (myPos, radius);
-			TextGizmo.Draw( myPos,  NodeCollection[i]._value.ToString());
+			//TextGizmo.Draw( myPos,  NodeCollection[i]._value.ToString());
 		}
 		//Draw Hidden Nodes
 		for (int i = 0; i < NodeCollection.Count - _inputCount - _outputCount; i++) {
 			Vector3 myPos = new Vector3 (pos.x + nodeDistance * (i + 1) + xOffset, pos.y - (Positions[0].y - Positions[_inputCount-1].y) * ((float)i / (NodeCollection.Count - _inputCount - _outputCount)) - yOffset, pos.z);
 			Positions.Add (myPos);
 			Gizmos.DrawSphere ( myPos, radius);
-			TextGizmo.Draw(myPos, NodeCollection[i + _inputCount]._value.ToString());
+			//TextGizmo.Draw(myPos, NodeCollection[i + _inputCount]._value.ToString());
 		}
 		//Draw OutPuts
 		for (int i = 0; i < _outputCount; i++) {

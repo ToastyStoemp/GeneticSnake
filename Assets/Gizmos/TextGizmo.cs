@@ -32,7 +32,7 @@ public class TextGizmo
 
     private const int CHAR_TEXTURE_HEIGHT = 8; // todo: line breaks
 
-    private const int CHAR_TEXTURE_WIDTH = 6;
+    private const int CHAR_TEXTURE_WIDTH = 12;
 
     private const string characters = "abcdefghijklmnopqrstuvwxyz0123456789.-";
 
