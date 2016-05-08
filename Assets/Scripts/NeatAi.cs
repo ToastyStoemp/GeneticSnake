@@ -5,11 +5,11 @@ using System.Collections.Generic;
 [System.Serializable]
 public class NeatAi {
 
-    public int poolSize,
-               inputCount,
-               outputCount;
+    public int _poolSize,
+               _inputCount,
+               _outputCount;
 
-    int generationCount = 0;
+    public int generationCount = 0;
     int genomeCount = 0;
 
     List<Generation> memory;
@@ -21,11 +21,12 @@ public class NeatAi {
     public void Instantiate (List<float> Desired, List<float> Input, int poolSize) {
         memory = new List<Generation>();
 
-        inputCount = Input.Count;
-        outputCount = Desired.Count;
+        _poolSize = poolSize;
+        _inputCount = Input.Count;
+        _outputCount = Desired.Count;
 
         Generation tempGen = new Generation();
-        tempGen.Instantiate(generationCount, poolSize, inputCount, outputCount);
+        tempGen.Instantiate(generationCount, _poolSize, _inputCount, _outputCount);
         memory.Add(tempGen);
 
         desired = Desired;
@@ -34,9 +35,21 @@ public class NeatAi {
 	
 	public List<float> Tick()
     {
-        memory[generationCount].pool[genomeCount].SetInputs(input);
-        memory[generationCount].pool[genomeCount].Calculate();
-        return memory[generationCount].pool[genomeCount].GetOutputs();
+        memory[generationCount].SetInputs(input);
+        memory[generationCount].Calculate();
+		memory[generationCount].CalcFitness(desired);
+		return memory[generationCount].GetOutputs(memory[generationCount].GetFittestGenome()._index);
+    }
+
+    public void Evolve()
+    {
+        memory[generationCount].RankGenomes();
+		List<Genome> tempPool = memory [generationCount].Selection();
+		tempPool = memory[generationCount].FillNewGeneration(tempPool);
+        memory.Add(new Generation());
+        generationCount++;
+        memory[generationCount].SetGeneration(tempPool);
+        memory[generationCount].Mutate();
     }
 
 	public void Mutate()
@@ -44,11 +57,19 @@ public class NeatAi {
 		memory [generationCount].pool [genomeCount].Mutate ();
 	}
 
-	public void Print(int generationNum, int genomeNum, Vector3 pos)
+	public void Print(int generationNum, Vector3 pos)
 	{
 		if (Application.isPlaying) {
-			memory [generationNum].pool [genomeNum].Print (pos);
-			
+            int offsetCounter = 0;
+            for (int i = 0; i < memory.Count; i++)
+            {
+                for (int k = 0; k < _poolSize; k++)
+                {
+                    memory[i].pool[k].Print(pos, offsetCounter);
+                }
+                offsetCounter += memory[i].GetLargestGenome().NodeCollection.Count - _inputCount - _outputCount + 3;
+            }
+            
 		}
 	}
 }
