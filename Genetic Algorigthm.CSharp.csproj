@@ -69,11 +69,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Gizmos\TextGizmo.cs" />
     <Compile Include="Assets\Scripts\ColorAI.cs" />
     <Compile Include="Assets\Scripts\Generation.cs" />
     <Compile Include="Assets\Scripts\Genome.cs" />
     <Compile Include="Assets\Scripts\NeatAi.cs" />
     <Compile Include="Assets\Scripts\Neuron.cs" />
+    <Compile Include="Assets\Scripts\ObjectCopier.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Archive\NeuralLayer.txt" />
