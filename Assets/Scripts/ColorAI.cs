@@ -8,6 +8,7 @@ public class ColorAI : MonoBehaviour {
     private Material _mat;
 
     public NeatAi AI;
+    public int PoolSize = 2;
 
     public GameObject targetColorObj;
     public Color targetColor;
@@ -19,7 +20,7 @@ public class ColorAI : MonoBehaviour {
 	public GameObject DebugLocation;
 
     float timer = 0.0f;
-    float nextUpdateTime = 2.0f;
+    float nextUpdateTime = 0.1f;
 
     
 
@@ -39,7 +40,7 @@ public class ColorAI : MonoBehaviour {
         input.Add(1.0f); //Blue
 
         AI = new NeatAi();
-        AI.Instantiate(desired, input, 1);
+        AI.Instantiate(desired, input, PoolSize);
 
         List<float> temp = AI.Tick();
         Color newColor = new Color(temp[0], temp[1], temp[2]);
@@ -50,17 +51,17 @@ public class ColorAI : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        timer += Time.deltaTime;
-        if (timer > nextUpdateTime)
-        {
-		NextTick ();
-            timer = 0.0f;
-        }
+      //  timer += Time.deltaTime;
+      //  if (timer > nextUpdateTime)
+      //  {
+		    ////NextTick ();
+      //      timer = 0.0f;
+      //  }
 	}
 
 	public void NextTick()
 	{
-		AI.Mutate ();
+		AI.Evolve ();
 		List<float> temp = AI.Tick();
 		Color newColor = new Color(temp[0], temp[1], temp[2]);
 		_mat.color = newColor;
@@ -68,7 +69,7 @@ public class ColorAI : MonoBehaviour {
 
 	void OnDrawGizmos()
 	{
-		AI.Print (0, 0, DebugLocation.transform.position);
+		AI.Print (AI.generationCount, DebugLocation.transform.position);
 	}
 
 }
