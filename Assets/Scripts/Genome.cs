@@ -7,58 +7,72 @@ using System.Linq;
 public class Genome {
 
     //GLOBAL VARIABLES TEMP
-    int globalGenomeCounter = 0;
-    int globalInovationCounter = 0;
+    public static int globalInovationCounter = 0;
+
 
     float matingChance = 0.05f;
     float enableChance = 0.25f;
     float weightChangeChance = 0.8f;
     float perturbedChance = 0.9f;
-    float perturbMaxChangeAmount = 0.3f; //HAS TO CHANGE DEPENDING ON TESTS! Smaller might take longer to get to optimal vallues, higher might result in skipping good vallues perhaps apply inverse sigmoid function
+    float perturbMaxChangeAmount = 0.1f; //HAS TO CHANGE DEPENDING ON TESTS! Smaller might take longer to get to optimal vallues, higher might result in skipping good vallues perhaps apply inverse sigmoid function
     float randomWeightChance = 0.1f; // has to be 1 - perturbedChance
     float newNodeChance = 0.01f;
     float newConnectionChance = 0.1f;
     
 
-    List<Neuron> NeuralNetwork;
-    List<Node> NodeCollection;
+    public List<Neuron> NeuralNetwork;
+    public List<Node> NodeCollection;
 	public float _fitness;
 	public float _probability;
-    int _genomeIndex;
+    public int _genIndex;
+    public int _index;
 
-    int _inputCount;
-    int _outputCount;
+    public int _inputCount;
+    public int _outputCount;
 
-    public Genome(int index, int inputCount, int outputCount)
+    public Genome(int gen, int index, int inputCount, int outputCount)
     {
         NeuralNetwork = new List<Neuron>();
         NodeCollection = new List<Node>();
 
-        _genomeIndex = index;
+        _index = index;
+        _genIndex = gen;
         _inputCount = inputCount;
         _outputCount = outputCount;
 
+    }
+    /// <summary>
+    /// Fill the NodeCollection with the beginning Nodes
+    /// </summary>
+    public void CreateBasicNodes()
+    {
         //Make the start input and output nodes
         List<Node> inputNodes = new List<Node>();
-        for (int i = 0; i < inputCount; i++)
+        for (int i = 0; i < _inputCount; i++)
         {
             inputNodes.Add(new Node(i, NeuronType.Input));
         }
         List<Node> outputNodes = new List<Node>();
-        for (int i = 0; i < outputCount; i++)
+        for (int i = 0; i < _outputCount; i++)
         {
-            outputNodes.Add(new Node(inputCount + i, NeuronType.OutPut));
+            outputNodes.Add(new Node(_inputCount + i, NeuronType.OutPut));
         }
-
-        //Generate a random connection to a random OutPut node
-        globalInovationCounter++;
-        Node from = inputNodes[(int)Random.Range(0, inputNodes.Count)];
-        Node to = outputNodes[(int)Random.Range(0, outputNodes.Count)];
-        NeuralNetwork.Add(new Neuron(from._nodeIndex, to._nodeIndex, Random.value*2-1.0f, globalInovationCounter));
 
         //Merge the nodes into one list 
         NodeCollection = inputNodes.Union(outputNodes).ToList();
     }
+    /// <summary>
+    /// Generate a random connection to a random OutPut node
+    /// </summary>
+    public void CreateRandomConnection()
+    {
+        //Generate a random connection to a random OutPut node
+        globalInovationCounter++;
+        Node from = NodeCollection[(int)Random.Range(0, _inputCount)];
+        Node to = NodeCollection[(int)Random.Range(NodeCollection.Count - _outputCount, NodeCollection.Count)];
+        NeuralNetwork.Add(new Neuron(from._nodeIndex, to._nodeIndex, Random.value * 2 - 1.0f, globalInovationCounter));
+    }
+
     /// <summary>
     /// Set the input data for the AI
     /// </summary>
@@ -86,7 +100,8 @@ public class Genome {
         //Since we added the outputs after the inputs the indexes are easily found
         for (int i = 0; i < _outputCount; i++)
         {
-            results.Add(NodeCollection[i + _inputCount]._value);
+            //results.Add(((NodeCollection[i + NodeCollection.Count - _outputCount]._value) + 1.0f) / 2.0f); // Normalize the outputs
+            results.Add(Mathf.Clamp((NodeCollection[i + NodeCollection.Count - _outputCount]._value), 0, 1)); // Clamp the outputs
         }
         return results;
     }
@@ -95,6 +110,7 @@ public class Genome {
     /// </summary>
     public void Calculate()
     {
+        Reset(); //Reset all the node vallues
         foreach (Neuron connection in NeuralNetwork)
         {
             if (connection._enabled) //Make sure to process only the enabled networks
@@ -102,6 +118,7 @@ public class Genome {
                 Node inputNode = NodeCollection[connection._in];
                 Node targetNode = NodeCollection[connection._out];
 
+                float originalValue = targetNode._value;
                 targetNode._value += inputNode._value * connection._weight;
             }
         }
@@ -115,7 +132,7 @@ public class Genome {
         //Since we added the outputs after the inputs the indexes are easily found
         for (int i = 0; i < _outputCount; i++)
         {
-            sum += desiredOutcome[i] - NodeCollection[i + _inputCount]._value;
+			sum += Mathf.Abs(desiredOutcome[i] - NodeCollection[i + NodeCollection.Count - _outputCount]._value);
         }
 
         _fitness += sum / (float)_outputCount;
@@ -128,15 +145,21 @@ public class Genome {
         //Reseting all the values ( in case of copy ), safety measure
         foreach(Node node in NodeCollection)
         {
+            if (node._type != NeuronType.Input)
+            {
+
             node._value = 0.0f;
+            }
         }
     }
     /// <summary>
     /// Mates/combines 2 genomes into 2 different OffSpring
     /// </summary>
-    public void Mate(ref Genome Partner, ref Genome OffSpring1, ref Genome OffSpring2)
+    public void Mate(Genome Partner, Genome OffSpring1, Genome OffSpring2)
     {
         List<int> InovationNumbersList = GetInovationList().Union(Partner.GetInovationList()).ToList();
+
+        List<Node> ToAddNodes = new List<Node>();
 
         foreach (int inovation in InovationNumbersList)
         {
@@ -147,28 +170,63 @@ public class Genome {
             {
                 if (Random.value > 0.5f) //50% chance 
                 {
-                    OffSpring1.AddNeuron(myNeuron);
-                    OffSpring2.AddNeuron(partnerNeuron);
+                    OffSpring1.AddNeuron(myNeuron, true);
+                    OffSpring2.AddNeuron(partnerNeuron, true);
                 }
                 else
                 {
-                    OffSpring1.AddNeuron(partnerNeuron);
-                    OffSpring2.AddNeuron(myNeuron);
+                    OffSpring1.AddNeuron(partnerNeuron, true);
+                    OffSpring2.AddNeuron(myNeuron, true);
                 }
 
             }
             else if (myNeuron != null)//the neuron is not present in the Partner, it's labeled as either disjoint or excess, it will be added to both
             {
-                OffSpring1.AddNeuron(myNeuron);
-                OffSpring2.AddNeuron(myNeuron);
+                OffSpring1.AddNeuron(myNeuron, true);
+                OffSpring2.AddNeuron(myNeuron, true);
             }
             else if (partnerNeuron != null)
             {
-                OffSpring1.AddNeuron(partnerNeuron);
-                OffSpring2.AddNeuron(partnerNeuron);
+                OffSpring1.AddNeuron(partnerNeuron, true);
+                OffSpring2.AddNeuron(partnerNeuron, true);
             }
         }
     }
+
+    /// <summary>
+    /// Creates all non existing nodes
+    /// </summary>
+    public void CreateExtendedNodes()
+    {
+        int nodecounter = 0;
+        foreach (Neuron connection in NeuralNetwork)
+        {
+            if (GetNode(connection._in) == null) 
+            {
+                NodeCollection.Add(new Node(nodecounter++));
+            }
+            if (GetNode(connection._out) == null)
+            {
+                NodeCollection.Add(new Node(nodecounter++));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns the node based on index
+    /// </summary>
+    public Node GetNode(int index)
+    {
+        foreach (Node node in NodeCollection)
+        {
+            if (node._nodeIndex == index)
+            {
+                return node;
+            }
+        }
+        return null;
+    }
+
 
     /// <summary>
     /// Alters the current Genome with the different mutation steps
@@ -186,23 +244,27 @@ public class Genome {
         List<Neuron> ToAddNeurons = new List<Neuron>(); //Not needed for all programming languages, this makes sure that newly added neurons are not subject to mutation in this generation yet.
 
         //Node Mutation is handled first, to prevent the same issues as adding Neuron connections while looping over the connections
-        foreach (Node node in NodeCollection)
+        //foreach (Node node in NodeCollection)
         {
-            //Chance for new connection
+            //Chance for new connection -- Should be written recursivly so that if a connection already exists it will keep trying
             if (Random.value < newConnectionChance) //chance for it to spawn a new connection (default is 10%)
             {
-                Node startNode = GetRandomNode();
-                Node endNode = GetRandomNode(startNode._nodeIndex);
+                Node startNode = GetRandomNode(true);
+                Node endNode = GetRandomNode(false, startNode._nodeIndex);
 
-                globalInovationCounter++;
-				Neuron newConnection = new Neuron(startNode._nodeIndex, endNode._nodeIndex, Random.value*2-1.0f , globalInovationCounter); //Set the weight to be random
-                ToAddNeurons.Add(newConnection);
+                if (!ConnectionExists(startNode._nodeIndex, endNode._nodeIndex))
+                {
+                    globalInovationCounter++;
+                    Neuron newConnection = new Neuron(startNode._nodeIndex, endNode._nodeIndex, Random.value * 2 - 1.0f, globalInovationCounter); //Set the weight to be random
+                    ToAddNeurons.Add(newConnection);
+                }
             }
         }
 
         //Connection Mutation
-        foreach (Neuron neuron in NeuralNetwork)
+        //foreach (Neuron neuron in NeuralNetwork)
         {
+            Neuron neuron = GetRandomNeuronConnection();
             //Dissabled Neurons have a chance to get enabled againg (Default value is 25%)
             if (neuron._enabled && Random.value < enableChance)
             {
@@ -218,7 +280,8 @@ public class Genome {
                 Perturbed With the highest chance of occuring ( Default value is 90% ) */
                 if (Random.value < perturbedChance)
                 {
-					neuron._weight *= perturbMaxChangeAmount * Random.value*2-1.0f;
+                    float random = Random.value * 2 - 1.0f;
+					neuron._weight += perturbMaxChangeAmount * random;
                     weightsPertured++; //DEBUG
                 }
                 else //Randomized, the weight is set to a random value ( Default value is 10% )
@@ -228,7 +291,7 @@ public class Genome {
                 }
             }
 
-            //New Neuron with protection
+            //New Node with protection
             if (Random.value < newNodeChance) //chance for it to spawn a new node (default value is 1%)
             {
                 /*Create a new node, set the input and output. After adding a new Neuron to the network, it is bound to drop in fitness, 
@@ -347,8 +410,13 @@ public class Genome {
     /// <summary>
     /// Adds a Neuron to the Neural Network 
     /// </summary>
-    public bool AddNeuron(Neuron neuron)
+    public bool AddNeuron(Neuron neuron, bool canExist = false)
     {
+        if (canExist)
+        {
+            NeuralNetwork.Add(neuron);
+            return true;
+        }
         if (GetInovationList().IndexOf(neuron._inovationNum) != -1)
         {
             NeuralNetwork.Add(neuron);
@@ -378,18 +446,39 @@ public class Genome {
     /// <summary>
     /// Returns a random node, used for adding a new connection into the network
     /// </summary>
-    public Node GetRandomNode( int ignoreIndex = -1)
+    public Node GetRandomNode(bool noOutPut = false, int ignoreIndex = -1)
     {
-        if (ignoreIndex != -1)
-        {
-            List<Node> tempList = new List<Node>();
-            foreach(Node node in NodeCollection)
+        List<Node> tempList = new List<Node>();
+        foreach (Node node in NodeCollection)
+            if (noOutPut)
+            {
                 if (node._type != NeuronType.OutPut && node._nodeIndex != ignoreIndex)
                     tempList.Add(node);
-
-            return tempList[(int)Random.Range(0, tempList.Count)];
+            }
+            else
+            {
+                if (node._nodeIndex != ignoreIndex)
+                    tempList.Add(node);
+            }              
+        return tempList[(int)Random.Range(0, tempList.Count)];
+    }
+    /// <summary>
+    /// Checks if there is already an connection between these 2 nodes ( both ways )
+    /// </summary>
+    public bool ConnectionExists(int input, int output)
+    {
+        foreach (Neuron connection in NeuralNetwork)
+        {
+            if (connection._in == input && connection._out == output)
+            {
+                return true;
+            }
+            else if (connection._in == output && connection._out == input)
+            {
+                return true;
+            }
         }
-        return NodeCollection[(int)Random.Range(0, NodeCollection.Count)];
+        return false;
     }
     /// <summary>
     /// returns the neuron count
@@ -428,30 +517,39 @@ public class Genome {
 	/// <summary>>
 	/// Graphically represents the Neural network
 	/// </summary>
-	public void Print(Vector3 pos)
+	public void Print(Vector3 pos, int sizeOffset)
 	{
-		List<Vector3> Positions = new List<Vector3> ();
 
-		float nodeDistance = 2.0f;
+        List<Vector3> Positions = new List<Vector3> ();
+
+		float nodeDistance = 1.0f;
 		float radius = 0.2f;
-		Gizmos.color = new Color (0.2f, 0.2f, 0.2f);
+        float xOffset = sizeOffset * nodeDistance;
+        float yOffset = _inputCount * nodeDistance * 2 * _index;
+
+
+        Gizmos.color = new Color(1.0f, 0.2f, 0.2f);
+        Vector3 myPos1 = new Vector3(pos.x - nodeDistance + xOffset, pos.y - yOffset, pos.z);
+        TextGizmo.Draw(myPos1, _index.ToString());
+
+        Gizmos.color = new Color (0.2f, 0.2f, 0.2f);
 		//Draw inputs
 		for (int i = 0; i < _inputCount; i++) {
-			Vector3 myPos = new Vector3 (pos.x, pos.y - nodeDistance * i, pos.z);
+			Vector3 myPos = new Vector3 (pos.x + xOffset, pos.y - nodeDistance * i - yOffset, pos.z);
 			Positions.Add (myPos);
 			Gizmos.DrawSphere (myPos, radius);
 			TextGizmo.Draw( myPos,  NodeCollection[i]._value.ToString());
 		}
 		//Draw Hidden Nodes
 		for (int i = 0; i < NodeCollection.Count - _inputCount - _outputCount; i++) {
-			Vector3 myPos = new Vector3 (pos.x + nodeDistance * (i + 1), pos.y - nodeDistance * (i / (NodeCollection.Count - _inputCount - _outputCount)), pos.z);
+			Vector3 myPos = new Vector3 (pos.x + nodeDistance * (i + 1) + xOffset, pos.y - (Positions[0].y - Positions[_inputCount-1].y) * ((float)i / (NodeCollection.Count - _inputCount - _outputCount)) - yOffset, pos.z);
 			Positions.Add (myPos);
 			Gizmos.DrawSphere ( myPos, radius);
 			TextGizmo.Draw(myPos, NodeCollection[i + _inputCount]._value.ToString());
 		}
 		//Draw OutPuts
 		for (int i = 0; i < _outputCount; i++) {
-			Vector3 myPos = new Vector3 (pos.x + nodeDistance * (NodeCollection.Count - _inputCount - _outputCount + 1), pos.y - nodeDistance * i, pos.z);
+			Vector3 myPos = new Vector3 (pos.x + nodeDistance * (NodeCollection.Count - _inputCount - _outputCount + 1) + xOffset, pos.y - nodeDistance * i - yOffset, pos.z);
 			Positions.Add (myPos);
 			Gizmos.DrawSphere (myPos, radius);
 			TextGizmo.Draw(myPos, NodeCollection[NodeCollection.Count - _inputCount + i]._value.ToString());
@@ -459,15 +557,21 @@ public class Genome {
 
 
 		for (int i = 0; i < NeuralNetwork.Count; i++) {
-			if (NeuralNetwork[i]._weight > 0 ) {
-				Gizmos.color = new Color (0, 1.0f, 0);
-			} else if (NeuralNetwork[i]._weight < 0 )
-			{
-				Gizmos.color = new Color (1.0f, 0, 0);
-			} else {
-				Gizmos.color = new Color (0, 0, 0);
-			}
-			Gizmos.DrawLine(Positions[NeuralNetwork[i]._in], Positions[NeuralNetwork[i]._out]);
+            if (NeuralNetwork[i]._enabled)
+            {
+                if (NeuralNetwork[i]._weight > 0)
+                {
+                    Gizmos.color = new Color(0, 1.0f, 0);
+                }
+                else if (NeuralNetwork[i]._weight < 0)
+                {
+                    Gizmos.color = new Color(1.0f, 0, 0);
+                }
+                else {
+                    Gizmos.color = new Color(0, 0, 0);
+                }
+                Gizmos.DrawLine(Positions[NeuralNetwork[i]._in], Positions[NeuralNetwork[i]._out]);
+            }
 		}
 	}
 }
