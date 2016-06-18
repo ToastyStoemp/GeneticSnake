@@ -14,7 +14,7 @@ public class Genome {
     float enableChance = 0.25f;
     float weightChangeChance = 0.8f;
     float perturbedChance = 0.9f;
-    float perturbMaxChangeAmount = 0.1f; //HAS TO CHANGE DEPENDING ON TESTS! Smaller might take longer to get to optimal vallues, higher might result in skipping good vallues perhaps apply inverse sigmoid function
+    float perturbMaxChangeAmount = 0.05f; //HAS TO CHANGE DEPENDING ON TESTS! Smaller might take longer to get to optimal vallues, higher might result in skipping good vallues perhaps apply inverse sigmoid function
     float randomWeightChance = 0.1f; // has to be 1 - perturbedChance
     float newNodeChance = 0.01f;
     float newConnectionChance = 0.1f;
@@ -132,7 +132,8 @@ public class Genome {
         ////Since we added the outputs after the inputs the indexes are easily found
         List<float> outputs = GetOutputs();
 
-        float diff = Mathf.Sqrt(Mathf.Pow(Mathf.Pow(outputs[0] - desiredOutcome[0], 2) + Mathf.Pow(outputs[1] - desiredOutcome[1], 2) + Mathf.Pow(outputs[2] - desiredOutcome[2], 2), 2));
+
+        float diff = Vector3.Distance(new Vector3(outputs[0], outputs[1], outputs[2]), new Vector3(desiredOutcome[0], desiredOutcome[1], desiredOutcome[2]));
         _fitness = sum - diff;
     }
     /// <summary>
@@ -151,7 +152,7 @@ public class Genome {
         }
     }
     /// <summary>
-    /// Mates/combines 2 genomes into 2 different OffSpring
+    /// Mates/combines 2 genomes into 2 different OffSpring Aka Crossover
     /// </summary>
     public void Mate(Genome Partner, Genome OffSpring1, Genome OffSpring2)
     {
@@ -196,16 +197,15 @@ public class Genome {
     /// </summary>
     public void CreateExtendedNodes()
     {
-        int nodecounter = 0;
         foreach (Neuron connection in NeuralNetwork)
         {
             if (GetNode(connection._in) == null) 
             {
-                NodeCollection.Add(new Node(nodecounter++));
+                NodeCollection.Add(new Node(connection._in));
             }
             if (GetNode(connection._out) == null)
             {
-                NodeCollection.Add(new Node(nodecounter++));
+                NodeCollection.Add(new Node(connection._out));
             }
         }
     }
@@ -309,21 +309,19 @@ public class Genome {
 				//Don't forget to add the actual node to the nodeCollection ( took me about an hour to figure this out -_- )
 				NodeCollection.Add(mutationNode);
 
-
-                //Add the newly created neurons to the 'to add list'
-                ToAddNeurons.Add(inputConnection);
-                ToAddNeurons.Add(outputConnection);
+                NeuralNetwork.Add(inputConnection);
+                NeuralNetwork.Add(outputConnection);
             }
 
         }
        
 
-        //Finishing up by adding the newly created connections
-        foreach (Neuron neuron in ToAddNeurons)
-        {
-            NeuralNetwork.Add(neuron);
-            newConnectionCounter++; //DEBUG
-        }
+        ////Finishing up by adding the newly created connections
+        //foreach (Neuron neuron in ToAddNeurons)
+        //{
+        //    NeuralNetwork.Add(neuron);
+        //    newConnectionCounter++; //DEBUG
+        //}
 
         //Some information output //DEBUG
 		//Debug.Log("This mutation, genome#" + _genomeIndex + "\nWeights changed: " + weightsChanged);
@@ -512,10 +510,10 @@ public class Genome {
     float Sigmoid(float x) {
         return 2 / (1 + Mathf.Exp(-4.9f * x)) - 1; //See https://www.jair.org/media/1338/live-1338-2278-jair.pdf page 95
     }
-	/// <summary>>
-	/// Graphically represents the Neural network
-	/// </summary>
-	public void Print(Vector3 pos, int sizeOffset)
+    /// <summary>>
+    /// Graphically represents the Neural network
+    /// </summary>
+    public void Print(Vector3 pos, int sizeOffset, bool ignoreY = false)
 	{
 
         List<Vector3> Positions = new List<Vector3> ();
@@ -525,6 +523,8 @@ public class Genome {
         float boxsize = 0.6f;
         float xOffset = sizeOffset * nodeDistance;
         float yOffset = _inputCount * nodeDistance * 2 * _index;
+        if (ignoreY)
+            yOffset = 0.0f;
 
 
         Vector3 myPos1 = new Vector3(pos.x - nodeDistance + xOffset, pos.y - yOffset + nodeDistance, pos.z);
@@ -542,43 +542,82 @@ public class Genome {
         Gizmos.color = new Color (0.2f, 0.2f, 0.2f);
 		//Draw inputs
 		for (int i = 0; i < _inputCount; i++) {
-			Vector3 myPos = new Vector3 (pos.x + xOffset, pos.y - nodeDistance * i - yOffset, pos.z);
+			Vector3 myPos = new Vector3 (pos.x + xOffset + i * 0.2f, pos.y - nodeDistance * i - yOffset, pos.z);
 			Positions.Add (myPos);
+            switch (NodeCollection[i]._type)
+            {
+                case NeuronType.Input:
+                    Gizmos.color = Color.red;
+                    break;
+                case NeuronType.OutPut:
+                    Gizmos.color = Color.blue;
+                    break;
+                case NeuronType.Hidden:
+                    Gizmos.color = Color.black;
+                    break;
+            }
 			Gizmos.DrawSphere (myPos, radius);
-			//TextGizmo.Draw( myPos,  NodeCollection[i]._value.ToString());
-		}
-		//Draw Hidden Nodes
-		for (int i = 0; i < NodeCollection.Count - _inputCount - _outputCount; i++) {
-			Vector3 myPos = new Vector3 (pos.x + nodeDistance * (i + 1) + xOffset, pos.y - (Positions[0].y - Positions[_inputCount-1].y) * ((float)i / (NodeCollection.Count - _inputCount - _outputCount)) - yOffset, pos.z);
-			Positions.Add (myPos);
-			Gizmos.DrawSphere ( myPos, radius);
-			//TextGizmo.Draw(myPos, NodeCollection[i + _inputCount]._value.ToString());
-		}
+            //TextGizmo.Draw( myPos,  NodeCollection[i]._value.ToString());
+            TextGizmo.Draw(myPos, NodeCollection[i]._nodeIndex.ToString());
+        }
 		//Draw OutPuts
 		for (int i = 0; i < _outputCount; i++) {
-			Vector3 myPos = new Vector3 (pos.x + nodeDistance * (NodeCollection.Count - _inputCount - _outputCount + 1) + xOffset, pos.y - nodeDistance * i - yOffset, pos.z);
+			Vector3 myPos = new Vector3 (pos.x - nodeDistance + xOffset + (NodeCollection.Count - _inputCount - _outputCount + 2) * nodeDistance + i * 0.2f, pos.y - nodeDistance * i - yOffset, pos.z);
 			Positions.Add (myPos);
-			Gizmos.DrawSphere (myPos, radius);
-			TextGizmo.Draw(myPos, NodeCollection[NodeCollection.Count - _inputCount + i]._value.ToString());
-		}
-
-
-		for (int i = 0; i < NeuralNetwork.Count; i++) {
-            if (NeuralNetwork[i]._enabled)
+            switch (NodeCollection[i + _inputCount]._type)
             {
-                if (NeuralNetwork[i]._weight > 0)
-                {
-                    Gizmos.color = new Color(0, 1.0f, 0);
-                }
-                else if (NeuralNetwork[i]._weight < 0)
-                {
-                    Gizmos.color = new Color(1.0f, 0, 0);
-                }
-                else {
-                    Gizmos.color = new Color(0, 0, 0);
-                }
-                Gizmos.DrawLine(Positions[NeuralNetwork[i]._in], Positions[NeuralNetwork[i]._out]);
+                case NeuronType.Input:
+                    Gizmos.color = Color.red;
+                    break;
+                case NeuronType.OutPut:
+                    Gizmos.color = Color.blue;
+                    break;
+                case NeuronType.Hidden:
+                    Gizmos.color = Color.black;
+                    break;
             }
+            Gizmos.DrawSphere (myPos, radius);
+            TextGizmo.Draw(myPos, NodeCollection[i + _inputCount]._nodeIndex.ToString());
+            //TextGizmo.Draw(myPos, NodeCollection[NodeCollection.Count - _inputCount + i]._value.ToString());
 		}
+        //Draw Hidden Nodes
+        for (int i = 0; i < NodeCollection.Count - _inputCount - _outputCount; i++)
+        {
+            Vector3 myPos = new Vector3(pos.x + nodeDistance * (i + 1) + xOffset + i * 0.2f, pos.y - (Positions[0].y - Positions[_inputCount - 1].y) * ((float)i / (NodeCollection.Count - _inputCount - _outputCount)) - nodeDistance / 2 - yOffset, pos.z);
+            Positions.Add(myPos);
+            switch (NodeCollection[i + _inputCount + _outputCount]._type)
+            {
+                case NeuronType.Input:
+                    Gizmos.color = Color.red;
+                    break;
+                case NeuronType.OutPut:
+                    Gizmos.color = Color.blue;
+                    break;
+                case NeuronType.Hidden:
+                    Gizmos.color = Color.black;
+                    break;
+            }
+            Gizmos.DrawSphere(myPos, radius);
+            //TextGizmo.Draw(myPos, NodeCollection[i + _inputCount]._value.ToString());
+            TextGizmo.Draw(myPos, NodeCollection[i + _inputCount + _outputCount]._nodeIndex.ToString());
+        }
+
+
+        for (int i = 0; i < NeuralNetwork.Count; i++)
+        {
+            if (NeuralNetwork[i]._weight > 0)
+            {
+                Gizmos.color = new Color(0, 1.0f, 0);
+            }
+            else if (NeuralNetwork[i]._weight < 0)
+            {
+                Gizmos.color = new Color(1.0f, 0, 0); 
+            }
+            if (!NeuralNetwork[i]._enabled)
+            {
+                Gizmos.color = new Color(0, 0, 0);
+            }
+            Gizmos.DrawLine(Positions[NeuralNetwork[i]._in], Positions[NeuralNetwork[i]._out]);
+        }
 	}
 }

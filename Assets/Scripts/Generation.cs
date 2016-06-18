@@ -78,10 +78,11 @@ public class Generation {
 		float PC = 0.8f;
         pool.Sort((x, y) => x._fitness.CompareTo(y._fitness));
 		pool [0]._probability = PC;
+        pool.Reverse();
 		for (int i = 1; i < pool.Count - 1 ; i++) {
 			//pool [i]._probability = Mathf.Exp ((1 - PC), (i - 1)) * PC;
 		}
-		pool.Sort((x, y) => x._probability.CompareTo(y._probability));
+		//pool.Sort((x, y) => x._probability.CompareTo(y._probability));
     }
 
     public List<Genome> Selection()

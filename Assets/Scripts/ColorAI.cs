@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 [System.Serializable]
 public class ColorAI : MonoBehaviour {
@@ -18,6 +19,9 @@ public class ColorAI : MonoBehaviour {
     List<float> input;
 
 	public GameObject DebugLocation;
+
+    public Text Generation;
+    public Text Fitness;
 
     float timer = 0.0f;
     float nextUpdateTime = 0.1f;
@@ -51,25 +55,29 @@ public class ColorAI : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-      //  timer += Time.deltaTime;
-      //  if (timer > nextUpdateTime)
-      //  {
-		    ////NextTick ();
-      //      timer = 0.0f;
-      //  }
-	}
+        timer += Time.deltaTime;
+        if (timer > nextUpdateTime)
+        {
+            NextTick ();
+            timer = 0.0f;
+        }
+    }
 
-	public void NextTick()
+    public void NextTick()
 	{
 		AI.Evolve ();
 		List<float> temp = AI.Tick();
 		Color newColor = new Color(temp[0], temp[1], temp[2]);
 		_mat.color = newColor;
+
+        Generation.text = AI.GetGenerationIndex().ToString();
+        Fitness.text = AI.GetBestFitness().ToString();
 	}
 
 	void OnDrawGizmos()
 	{
-		AI.Print (AI.generationCount, DebugLocation.transform.position);
+		//AI.PrintAll(DebugLocation.transform.position);
+        AI.PrintBest(DebugLocation.transform.position);
 	}
 
 }

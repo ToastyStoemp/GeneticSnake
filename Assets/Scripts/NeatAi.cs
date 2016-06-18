@@ -57,7 +57,7 @@ public class NeatAi {
 		memory [generationCount].pool [genomeCount].Mutate ();
 	}
 
-	public void Print(int generationNum, Vector3 pos)
+	public void PrintAll(Vector3 pos)
 	{
 		if (Application.isPlaying) {
             int offsetCounter = 0;
@@ -72,6 +72,32 @@ public class NeatAi {
             
 		}
 	}
+
+    public void PrintBest(Vector3 pos)
+    {
+        if (Application.isPlaying)
+        {
+            int offsetCounter = 0;
+            for (int i = 0; i < memory.Count; i++)
+            {
+                Genome fittest = memory[i].GetFittestGenome();
+                fittest.Print(pos, offsetCounter, true);
+                offsetCounter += fittest.NodeCollection.Count - _inputCount - _outputCount + 3;
+            }
+
+        }
+    }
+
+    public int GetGenerationIndex()
+    {
+        return generationCount;
+    }
+
+    public float GetBestFitness()
+    {
+        Genome fittest = memory[generationCount].GetFittestGenome();
+        return fittest._fitness;
+    }
 }
 
 //first iteration -> test fitness
