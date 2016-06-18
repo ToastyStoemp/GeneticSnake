@@ -22,9 +22,13 @@ public class ColorAI : MonoBehaviour {
 
     public Text Generation;
     public Text Fitness;
+    public Text Probability;
 
     float timer = 0.0f;
     float nextUpdateTime = 0.1f;
+
+    public bool finished = false;
+    public float targetFitness = 0.98f;
 
     
 
@@ -55,11 +59,14 @@ public class ColorAI : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        timer += Time.deltaTime;
-        if (timer > nextUpdateTime)
+        if (!finished)
         {
-            NextTick ();
-            timer = 0.0f;
+            timer += Time.deltaTime;
+            if (timer > nextUpdateTime)
+            {
+                NextTick();
+                timer = 0.0f;
+            }
         }
     }
 
@@ -71,13 +78,16 @@ public class ColorAI : MonoBehaviour {
 		_mat.color = newColor;
 
         Generation.text = AI.GetGenerationIndex().ToString();
-        Fitness.text = AI.GetBestFitness().ToString();
+        Fitness.text = AI.GetBestFitness()._fitness.ToString();
+
+        if (AI.GetBestFitness()._fitness > targetFitness)
+            finished = true;
 	}
 
 	void OnDrawGizmos()
 	{
-		//AI.PrintAll(DebugLocation.transform.position);
-        AI.PrintBest(DebugLocation.transform.position);
+		AI.PrintAll(DebugLocation.transform.position);
+        //AI.PrintBest(DebugLocation.transform.position);
 	}
 
 }

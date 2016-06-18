@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 [System.Serializable]
+[System.Diagnostics.DebuggerDisplay("probability = {_probability}")]
 public class Genome {
 
     //GLOBAL VARIABLES TEMP
@@ -18,6 +19,7 @@ public class Genome {
     float randomWeightChance = 0.1f; // has to be 1 - perturbedChance
     float newNodeChance = 0.01f;
     float newConnectionChance = 0.1f;
+    float sizeIncluenceFactor = 0.1f; //Determines how much the size of a network has influence on the probability
     
 
     public List<Neuron> NeuralNetwork;
@@ -135,6 +137,9 @@ public class Genome {
 
         float diff = Vector3.Distance(new Vector3(outputs[0], outputs[1], outputs[2]), new Vector3(desiredOutcome[0], desiredOutcome[1], desiredOutcome[2]));
         _fitness = sum - diff;
+
+        int networkSize = NodeCollection.Count + NeuralNetwork.Count - _inputCount - _outputCount -1;
+        //_fitness -= networkSize * sizeIncluenceFactor;
     }
     /// <summary>
     /// Reseting all the values ( in case of copy ), safety measure
@@ -527,11 +532,14 @@ public class Genome {
             yOffset = 0.0f;
 
 
-        Vector3 myPos1 = new Vector3(pos.x - nodeDistance + xOffset, pos.y - yOffset + nodeDistance, pos.z);
+        Vector3 myPos1 = new Vector3(pos.x - nodeDistance + xOffset, pos.y - yOffset + nodeDistance * 2, pos.z);
         TextGizmo.Draw(myPos1, _index.ToString());
 
-        myPos1 = new Vector3(pos.x - nodeDistance + xOffset, pos.y - yOffset + nodeDistance / 2, pos.z);
+        myPos1 = new Vector3(pos.x - nodeDistance + xOffset, pos.y - yOffset + nodeDistance, pos.z);
         TextGizmo.Draw(myPos1, _fitness.ToString());
+
+        myPos1 = new Vector3(pos.x - nodeDistance + xOffset, pos.y - yOffset + nodeDistance /2, pos.z);
+        TextGizmo.Draw(myPos1, _probability.ToString());
 
         myPos1 = new Vector3(pos.x - nodeDistance + xOffset + (NodeCollection.Count - _inputCount - _outputCount + 2) * nodeDistance, pos.y - yOffset + nodeDistance / 2, pos.z);
         List<float> results = GetOutputs();
@@ -544,18 +552,7 @@ public class Genome {
 		for (int i = 0; i < _inputCount; i++) {
 			Vector3 myPos = new Vector3 (pos.x + xOffset + i * 0.2f, pos.y - nodeDistance * i - yOffset, pos.z);
 			Positions.Add (myPos);
-            switch (NodeCollection[i]._type)
-            {
-                case NeuronType.Input:
-                    Gizmos.color = Color.red;
-                    break;
-                case NeuronType.OutPut:
-                    Gizmos.color = Color.blue;
-                    break;
-                case NeuronType.Hidden:
-                    Gizmos.color = Color.black;
-                    break;
-            }
+            Gizmos.color = Color.red;
 			Gizmos.DrawSphere (myPos, radius);
             //TextGizmo.Draw( myPos,  NodeCollection[i]._value.ToString());
             TextGizmo.Draw(myPos, NodeCollection[i]._nodeIndex.ToString());
@@ -564,18 +561,7 @@ public class Genome {
 		for (int i = 0; i < _outputCount; i++) {
 			Vector3 myPos = new Vector3 (pos.x - nodeDistance + xOffset + (NodeCollection.Count - _inputCount - _outputCount + 2) * nodeDistance + i * 0.2f, pos.y - nodeDistance * i - yOffset, pos.z);
 			Positions.Add (myPos);
-            switch (NodeCollection[i + _inputCount]._type)
-            {
-                case NeuronType.Input:
-                    Gizmos.color = Color.red;
-                    break;
-                case NeuronType.OutPut:
-                    Gizmos.color = Color.blue;
-                    break;
-                case NeuronType.Hidden:
-                    Gizmos.color = Color.black;
-                    break;
-            }
+            Gizmos.color = Color.blue;
             Gizmos.DrawSphere (myPos, radius);
             TextGizmo.Draw(myPos, NodeCollection[i + _inputCount]._nodeIndex.ToString());
             //TextGizmo.Draw(myPos, NodeCollection[NodeCollection.Count - _inputCount + i]._value.ToString());
@@ -585,18 +571,7 @@ public class Genome {
         {
             Vector3 myPos = new Vector3(pos.x + nodeDistance * (i + 1) + xOffset + i * 0.2f, pos.y - (Positions[0].y - Positions[_inputCount - 1].y) * ((float)i / (NodeCollection.Count - _inputCount - _outputCount)) - nodeDistance / 2 - yOffset, pos.z);
             Positions.Add(myPos);
-            switch (NodeCollection[i + _inputCount + _outputCount]._type)
-            {
-                case NeuronType.Input:
-                    Gizmos.color = Color.red;
-                    break;
-                case NeuronType.OutPut:
-                    Gizmos.color = Color.blue;
-                    break;
-                case NeuronType.Hidden:
-                    Gizmos.color = Color.black;
-                    break;
-            }
+            Gizmos.color = Color.black;
             Gizmos.DrawSphere(myPos, radius);
             //TextGizmo.Draw(myPos, NodeCollection[i + _inputCount]._value.ToString());
             TextGizmo.Draw(myPos, NodeCollection[i + _inputCount + _outputCount]._nodeIndex.ToString());

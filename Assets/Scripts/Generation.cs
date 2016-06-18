@@ -22,17 +22,20 @@ public class Generation {
         _poolSize = poolSize;
         _inputCount = inputCount;
         _outputCount = outputCount;
+        return this;
+    }
 
+    public void FillPool()
+    {
         //Create a new pool of Genomes
         pool = new List<Genome>();
-        for (int i = 0; i < poolSize; i++)
+        for (int i = 0; i < _poolSize; i++)
         {
-            Genome tempGenome = new Genome(_index, i, inputCount, outputCount);
+            Genome tempGenome = new Genome(_index, i, _inputCount, _outputCount);
             tempGenome.CreateBasicNodes();
             tempGenome.CreateRandomConnection();
             pool.Add(tempGenome);
         }
-        return this;
     }
 
 	public void SetInputs(List<float> inputs)
@@ -59,7 +62,21 @@ public class Generation {
 		return fittest;
 	}
 
-	public void Calculate()
+    public Genome GetProbabiliestGenome()
+    {
+        Genome Probabilitiest = new Genome(0, 0, 0, 0);
+        Probabilitiest._probability = 0.0f;
+        foreach (Genome genome in pool)
+        {
+            if (genome._probability > Probabilitiest._fitness)
+            {
+                Probabilitiest = genome;
+            }
+        }
+        return Probabilitiest;
+    }
+
+    public void Calculate()
 	{
 		foreach (Genome genome in pool) {
 			genome.Calculate ();
@@ -73,26 +90,38 @@ public class Generation {
 		}
 	}
 
+    public void CalcProbablity()
+    {
+        foreach (Genome genome in pool)
+        {
+            //genome.ProbabilityCalc();
+        }
+    }
+
     public void RankGenomes()
     {
-		float PC = 0.8f;
+		float PC = 1.0f / _poolSize;
         pool.Sort((x, y) => x._fitness.CompareTo(y._fitness));
-		pool [0]._probability = PC;
         pool.Reverse();
-		for (int i = 1; i < pool.Count - 1 ; i++) {
-			//pool [i]._probability = Mathf.Exp ((1 - PC), (i - 1)) * PC;
+		pool [0]._probability = PC;
+		for (int i = 1; i < pool.Count; ++i) {
+			pool [i]._probability = Mathf.Pow((1 - PC),i) * PC;
 		}
-		//pool.Sort((x, y) => x._probability.CompareTo(y._probability));
     }
 
     public List<Genome> Selection()
     {
         List<Genome> result = new List<Genome>();
-        for (int i = 0; i < pool.Count / 2; i++)
+        result.Add(pool[0]);
+        while (result.Count < _poolSize / 2)
         {
-            //if (Random.value < pool[i]._probability)
+            int randomIndex = (int)Mathf.Floor(Random.value * _poolSize);
+            if (Random.Range(0.0f, 1.0f / _poolSize) < pool[randomIndex]._probability)
             {
-                result.Add(pool[i]);
+                if (!result.Contains(pool[randomIndex]))
+                {
+                    result.Add(pool[randomIndex]);
+                }
             }
         }
         return result;

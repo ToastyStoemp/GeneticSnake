@@ -27,6 +27,7 @@ public class NeatAi {
 
         Generation tempGen = new Generation();
         tempGen.Instantiate(generationCount, _poolSize, _inputCount, _outputCount);
+        tempGen.FillPool();
         memory.Add(tempGen);
 
         desired = Desired;
@@ -38,16 +39,18 @@ public class NeatAi {
         memory[generationCount].SetInputs(input);
         memory[generationCount].Calculate();
 		memory[generationCount].CalcFitness(desired);
-		return memory[generationCount].GetOutputs(memory[generationCount].GetFittestGenome()._index);
+        memory[generationCount].RankGenomes();
+        //memory[generationCount].CalcProbablity();
+        return memory[generationCount].GetOutputs(0); //returns fittest genome
     }
 
     public void Evolve()
     {
-        memory[generationCount].RankGenomes();
 		List<Genome> tempPool = memory [generationCount].Selection();
 		tempPool = memory[generationCount].FillNewGeneration(tempPool);
         memory.Add(new Generation());
         generationCount++;
+        memory[generationCount].Instantiate(generationCount, _poolSize, _inputCount, _outputCount);
         memory[generationCount].SetGeneration(tempPool);
         memory[generationCount].Mutate();
     }
@@ -80,7 +83,7 @@ public class NeatAi {
             int offsetCounter = 0;
             for (int i = 0; i < memory.Count; i++)
             {
-                Genome fittest = memory[i].GetFittestGenome();
+                Genome fittest = memory[i].GetProbabiliestGenome();
                 fittest.Print(pos, offsetCounter, true);
                 offsetCounter += fittest.NodeCollection.Count - _inputCount - _outputCount + 3;
             }
@@ -93,10 +96,14 @@ public class NeatAi {
         return generationCount;
     }
 
-    public float GetBestFitness()
+    public Genome GetBestFitness()
     {
-        Genome fittest = memory[generationCount].GetFittestGenome();
-        return fittest._fitness;
+        return memory[generationCount].GetFittestGenome();
+    }
+
+    public Genome GetBestProbability()
+    {
+        return memory[generationCount].GetProbabiliestGenome();
     }
 }
 
